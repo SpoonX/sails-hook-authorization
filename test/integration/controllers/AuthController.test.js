@@ -12,7 +12,7 @@ describe('AuthController', function () {
     it('should login with given credentials', function (done) {
       // login
       request(sails.hooks.http.app)
-        .post('/login')
+        .post('/auth/login')
         .send(loginCredentials)
         .expect(200, function (error, response) {
 
@@ -42,7 +42,7 @@ describe('AuthController', function () {
   describe('#signup()', function () {
     it('should register the user', function (done) {
       request(sails.hooks.http.app)
-        .post('/signup')
+        .post('/auth/signup')
         .send({
           username       : 'kees',
           password       : 'aotherrandompassword',
@@ -63,7 +63,7 @@ describe('AuthController', function () {
 
       // fetch tokens
       request(sails.hooks.http.app)
-        .post('/login')
+        .post('/auth/login')
         .send(loginCredentials)
         .expect(200, function (error, loginResponse) {
 
