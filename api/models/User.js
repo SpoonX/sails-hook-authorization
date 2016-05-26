@@ -3,20 +3,18 @@ var bcrypt = require('bcrypt');
 module.exports = {
   attributes: {
     username: {
-      type    : 'string',
-      required: true,
-      unique  : true
+      type : 'string',
+      index: true
     },
 
     email: {
-      type    : 'email',
-      required: true,
-      unique  : true
+      type : 'email',
+      index: true
     },
 
     password: {
       type    : 'string',
-      required: true,
+      required: true
     },
 
     emailConfirmed: {
@@ -24,11 +22,7 @@ module.exports = {
       defaultsTo: false
     },
 
-    isPasswordValid: function (password, cb) {
-      bcrypt.compare(password, this.password, cb);
-    },
-
-    toJSON: function () {
+    toJSON: () => {
       var values = this.toObject();
 
       delete values.password;
@@ -41,12 +35,12 @@ module.exports = {
   beforeUpdate: encryptPassword
 };
 
-function encryptPassword (values, next) {
+function encryptPassword(values, next) {
   if (!values.password) {
     return next();
   }
 
-  bcrypt.hash(values.password, 10, function (error, hash) {
+  bcrypt.hash(values.password, 10, (error, hash) => {
     if (error) {
       return next(error);
     }

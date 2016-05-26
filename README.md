@@ -12,22 +12,44 @@ npm install sails-hook-authorization --save
 This module globally expose a service which integrates with the jsonwebtoken (https://github.com/auth0/node-jsonwebtoken) and provide the interface to apply the jwt specification (http://self-issued.info/docs/draft-ietf-oauth-json-web-token.html).
 
 ```javascript
-module.exports.issueToken = function(payload, options) {};
+module.exports.validatePassword = function(currentPassword, oldPassword) {
+  return Promise.resolve(true);
+};
 
-module.exports.verifyToken = function(token, callback) {};
+module.exports.issueTokenForUser = function(user) {
+  return token;
+};
 
-module.exports.decodeToken = function(token, options) {};
+module.exports.issueToken = function(payload, options) {
+  return token
+};
 
-module.exports.refreshToken = function(decodedToken, expiresIn, callback) {};
+module.exports.verifyToken = function(token) {
+  return Promise.resolve(token);
+};
+
+module.exports.decodeToken = function(token, options) {
+  return decodedToken;
+};
+
+module.exports.refreshToken = function(decodedToken, expiresIn) {
+  return Promise.resolve(token);
+};
+
+module.exports.issueRefreshTokenForUser = function(token) {
+  return token;
+};
 
 // renews the `access_token` based on the `refresh_token`
-module.exports.validateRefreshToken = function(accessToken, refreshToken, callback) {};
+module.exports.validateRefreshToken = function(accessToken, refreshToken) {
+  return Promise.resolve(tokens);
+};
 ```
 
 # Policy
 The `verifyToken.js` and `ensureToken.js` policies are just like any other Sails policy and can be applied as such. It's responsible for parsing the token from the incoming request and validating it's state.
 
-Use it as you would use any other sails policy to enable jwt authentication restriction to your `Controllers/Actions`:
+Use it as you would use any other sails policy to enable authentication restriction to your `Controllers/Actions`:
 
 ```javascript
 module.exports.policies = {
@@ -46,20 +68,20 @@ These are the routes provided by this hook:
 
 ```javascript
 module.exports.routes = {
-  'POST /login'              : 'AuthController.login',
-  'POST /signup'             : 'AuthController.signup',
-  'GET /auth/activate/:token': 'AuthController.activate',
-  'GET /auth/me'             : 'AuthController.me',
-  'POST /auth/refresh-token' : 'AuthController.refreshToken'
+  'POST /login'                  : 'AuthController.login',
+  'POST /signup'                 : 'AuthController.signup',
+  'GET /auth/verify-email/:token': 'AuthController.verifyEmail',
+  'GET /auth/me'                 : 'AuthController.me',
+  'POST /auth/refresh-token'     : 'AuthController.refreshToken'
 };
 ```
 
-## POST /login
-The request to this route `/login` must be sent with these body parameters:
+## POST /auth/login
+The request to this route `/auth/login` must be sent with these body parameters:
 
 ```javascript
 {
-  email   : 'email@test.com', // or username
+  email   : 'email@test.com', // or username based on the `loginProperty`
   password: 'test123'
 }
 ```
@@ -79,19 +101,18 @@ The default TTL of the `access_token` is 1 day, `refresh_token` is 30 days.
 If the `access_token` is expired you can expect the `expired_token` error.
 
 
-## POST /signup
+## POST /auth/signup
 The request to this route `/signup` must be sent with these body parameters:
 
 ```javascript
 {
   username       : 'test',
   email          : 'email@test.com',
-  password       : 'test123',
-  passwordConfirm: 'test123'
+  password       : 'test123'
 }
 ```
 
-If account activation feature is disabled, the response will be the same as the `/login`.
+If the email verification feature is disabled, the response will be the same as the `/auth/login`.
 
 ```javascript
 {
@@ -100,25 +121,19 @@ If account activation feature is disabled, the response will be the same as the 
 }
 ```
 
-If it's enabled you will get the following response:
-
-```javascript
-{
-  status: 'ok'
-}
-```
+If it's enabled you will get a 200 as response:
 
 ## GET /auth/activate/:token
 ### Account Activation
-This feature is off by default and to enable it you must override the `requireAccountActivation` configuration and implement the function `sendAccountActivationEmail`:
+This feature is off by default and to enable it you must override the `requireEmailVerification` configuration and implement the function `sendVerificationEmail`:
 
 ```javascript
-module.exports.jwt = {
-  secret: process.env.JWT_SECRET || 'superSecretForDev',
-
-  requireAccountActivation  : false,
-  sendAccountActivationEmail: function (user, activateUrl) {
-    sails.log.error('sails-hook-authorization:: An email function must be implemented through `sails.config.jwt.sendAccountActivationEmail` in order to enable the account activation feature. This will receive two parameters (user, activationLink).');
+module.exports.auth = {
+  secret                  : process.env.JWT_SECRET || 'superSecretForDev',
+  loginProperty           : 'email',
+  requireEmailVerification: false,
+  sendVerificationEmail   : (user, activateUrl) => {
+    sails.log.error('sails-hook-authorization:: An email function must be implemented through `sails.config.auth.sendVerificationEmail` in order to enable the email verification feature. This will receive two parameters (user, activationLink).');
   },
 
   // seconds to be valid
