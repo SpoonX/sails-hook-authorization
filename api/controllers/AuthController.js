@@ -1,5 +1,4 @@
 "use strict";
-
 var requestHelpers = require('request-helpers');
 var _              = require('lodash');
 
@@ -7,7 +6,7 @@ module.exports = {
   login: (req, res) => {
     var authService   = sails.services.authservice;
     var authConfig    = sails.config.auth;
-    var loginProperty = authConfig.loginProperty;
+    var loginProperty = authConfig.identityOptions.loginProperty;
     var params        = requestHelpers.secureParameters(['password', loginProperty], req, true);
     var user, accessToken;
 
@@ -28,7 +27,7 @@ module.exports = {
         return authService.validatePassword(params.password, foundUser.password);
       })
       .then(() => {
-        if (authConfig.requireEmailVerification && !user.emailConfirmed) {
+        if (authConfig.identityOptions.requireEmailVerification && !user.emailConfirmed) {
           throw 'email_not_confirmed';
         }
 
@@ -55,7 +54,8 @@ module.exports = {
   },
 
   refreshToken: (req, res) => {
-    var params = requestHelpers.secureParameters(['access_token', 'refresh_token'], req, true);
+    var params      = requestHelpers.secureParameters(['refresh_token'], req, true);
+    var authService = sails.services.authservice;
 
     if (!params.isValid()) {
       return res.badRequest('missing_parameters', params.getMissing());
@@ -63,7 +63,15 @@ module.exports = {
 
     params = params.asObject();
 
-    sails.services.authservice
+    try {
+      var accessToken = authService.findAccessToken(req);
+    } catch (error) {
+      return error.error === 'invalid_token' ? res.forbidden(error) : res.negotiate(error);
+    }
+
+    params.access_token = accessToken;
+
+    authService
       .validateRefreshToken(params.access_token, params.refresh_token)
       .then(res.ok)
       .catch(res.badRequest);
@@ -71,8 +79,8 @@ module.exports = {
 
   signup: (req, res) => {
     var authConfig     = sails.config.auth;
-    var loginProperty  = authConfig.loginProperty;
-    var paramBlueprint = [loginProperty, 'password', {param: (loginProperty === 'email')? 'username' : 'email', required: false}]
+    var loginProperty  = authConfig.identityOptions.loginProperty;
+    var paramBlueprint = authConfig.identityOptions.parameterBlueprint.concat(['password']);
     var params         = requestHelpers.secureParameters(paramBlueprint, req, true);
     var authService    = sails.services.authservice;
     var accessToken;
@@ -90,16 +98,16 @@ module.exports = {
 
       throw userExists.email === params.email ? 'exists_email' : 'exists_username';
     })
-    .then(sails.models.user.create)
-    .then(user => {
-      if (!authConfig.requireEmailVerification) {
-        return user;
-      }
+      .then(sails.models.user.create)
+      .then(user => {
+        if (!authConfig.identityOptions.requireEmailVerification) {
+          return user;
+        }
 
-      authConfig.sendVerificationEmail(user, sails.getBaseurl() + '/auth/verify-email/' + authService.issueToken({activate: user.id}));
+        authConfig.sendVerificationEmail(user, sails.getBaseurl() + '/auth/verify-email/' + authService.issueToken({activate: user.id}));
 
-      return res.ok();
-    }).then((user) => {
+        return res.ok();
+      }).then((user) => {
       accessToken = authService.issueTokenForUser(user);
 
       res.ok({
@@ -122,21 +130,21 @@ module.exports = {
       .then(decodedToken => {
         return sails.models.user.findOneId(decodedToken.activate);
       }).then(user => {
-        if (!user) {
-          throw 'invalid_user';
-        }
+      if (!user) {
+        throw 'invalid_user';
+      }
 
-        user.emailConfirmed = true;
+      user.emailConfirmed = true;
 
-        return user.save();
-      }).then(() => {
-        res.ok();
-      }).catch(error => {
-        if (typeof error === 'string') {
-          return res.badRequest(error);
-        }
+      return user.save();
+    }).then(() => {
+      res.ok();
+    }).catch(error => {
+      if (typeof error === 'string') {
+        return res.badRequest(error);
+      }
 
-        return res.negotiate(error);
-      });
+      return res.negotiate(error);
+    });
   }
 };

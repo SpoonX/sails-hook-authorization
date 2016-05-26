@@ -3,7 +3,7 @@ var assert  = require('chai').assert;
 
 describe('AuthController', () => {
   var loginCredentials = {
-    email   : 'bob@example.com',
+    username: 'Bob',
     password: 'anicerandompassword'
   };
 
