@@ -1,18 +1,18 @@
 "use strict";
 
-module.exports = function (req, res, next) {
-  let accessToken;
+module.exports = (req, res, next) => {
+  var accessToken;
 
   // check authorization headers
   if (req.headers && req.headers.authorization) {
-    let parts = req.headers.authorization.split(' ');
+    var parts = req.headers.authorization.split(' ');
 
     if (parts.length !== 2) {
       return res.forbidden('invalid_token', 'Format is Authorization: Bearer [access_token]');
     }
 
-    let scheme      = parts[0];
-    let credentials = parts[1];
+    var scheme      = parts[0];
+    var credentials = parts[1];
 
     if (/^Bearer$/i.test(scheme)) {
       accessToken = credentials;
@@ -30,18 +30,15 @@ module.exports = function (req, res, next) {
   req.query && delete req.query.access_token;
 
   // verify JWT token
-  Auth.verifyToken(accessToken, function (error, token) {
-    if (error) {
-      if (error.name === 'TokenExpiredError') {
-        return res.forbidden(res, 'expired_token');
-      }
-
-      return res.forbidden(res, 'invalid_token');
-    }
-
-    // Store user id to request object
+  sails.service.authservice.verifyToken(accessToken).then(token => {
     req.access_token = token;
 
     return next();
+  }).catch(error => {
+    if (error.name === 'TokenExpiredError') {
+      return res.forbidden(res, 'expired_token');
+    }
+
+    res.forbidden(res, 'invalid_token');
   });
 };

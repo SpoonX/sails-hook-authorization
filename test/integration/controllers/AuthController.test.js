@@ -1,55 +1,52 @@
 var request = require('supertest');
 var assert  = require('chai').assert;
 
-describe('AuthController', function () {
-
+describe('AuthController', () => {
   var loginCredentials = {
-    username: 'Bob',
+    email   : 'bob@example.com',
     password: 'anicerandompassword'
   };
 
-  describe('#login()', function () {
-    it('should login with given credentials', function (done) {
+  describe('#login()', () => {
+    it('should login with given credentials', (done) => {
+      var authService = sails.services.authservice;
+
       // login
       request(sails.hooks.http.app)
         .post('/auth/login')
         .send(loginCredentials)
-        .expect(200, function (error, response) {
+        .expect(200, (error, response) => {
 
           var body = response.body;
 
-          // check tokens
           assert.isDefined(body.access_token);
           assert.isDefined(body.refresh_token);
 
-          // verify token
-          Auth.verifyToken(body.access_token, function (error, accessToken) {
-            assert.ifError(error);
-
-            Auth.verifyToken(body.refresh_token, function (error, refreshToken) {
-              assert.ifError(error);
+          authService.verifyToken(body.access_token).then(accessToken => {
+            return authService.verifyToken(body.refresh_token).then(refreshToken => {
 
               // check if refreshToken unique matches the tokens `iat`
               assert.equal(refreshToken.unique, accessToken.iat + '.' + accessToken.user);
 
               done();
             });
+          }).catch(error => {
+            assert.ifError(error);
           });
         });
     });
   });
 
-  describe('#signup()', function () {
-    it('should register the user', function (done) {
+  describe('#signup()', () => {
+    it('should register the user', (done) => {
       request(sails.hooks.http.app)
         .post('/auth/signup')
         .send({
-          username       : 'kees',
-          password       : 'aotherrandompassword',
-          passwordConfirm: 'aotherrandompassword',
-          email          : 'kees@example.org'
+          username: 'kees',
+          password: 'aotherrandompassword',
+          email   : 'kees@example.org'
         })
-        .expect(200, function (error, signupResponse) {
+        .expect(200, (error, signupResponse) => {
           assert.isDefined(signupResponse.body.access_token);
           assert.isDefined(signupResponse.body.refresh_token);
 
@@ -58,36 +55,32 @@ describe('AuthController', function () {
     });
   });
 
-  describe('#refreshToken()', function () {
-    it('should generate tokens with new expire date', function (done) {
+  describe('#refreshToken()', () => {
+    it('should generate tokens with new expire date', (done) => {
 
-      // fetch tokens
       request(sails.hooks.http.app)
         .post('/auth/login')
         .send(loginCredentials)
-        .expect(200, function (error, loginResponse) {
+        .expect(200, (error, loginResponse) => {
 
           var query = {
             access_token : loginResponse.body.access_token,
             refresh_token: loginResponse.body.refresh_token
           };
 
-          // increase the timeout of the test by 1 second
-          this.timeout(1000);
-
-          // make request to extend TTL of the token, wait 1 second to generate a new `iat` (issued at time)
-          setTimeout(function () {
+          // make request to extend TTL of the token, wait 1 second to generate a new `iat`
+          setTimeout(() => {
             request(sails.hooks.http.app)
               .post('/auth/refresh-token')
               .send(query)
-              .expect(200, function (error, refreshResponse) {
+              .expect(200, (error, refreshResponse) => {
 
-                function decode (token) {
-                  return Auth.decodeToken(token);
+                function decode(token) {
+                  return sails.services.authservice.decodeToken(token);
                 }
 
-                function deleteProps (obj) {
-                  delete obj.iat; // issue at time
+                function deleteProps(obj) {
+                  delete obj.iat; // issued at time
                   delete obj.exp; // expire date
 
                   return obj;
@@ -99,7 +92,6 @@ describe('AuthController', function () {
                 var orginalToken        = decode(query.access_token);
                 var orginalRefreshToken = decode(query.refresh_token);
 
-                // check if set
                 assert.isDefined(body.access_token);
                 assert.isDefined(body.refresh_token);
 

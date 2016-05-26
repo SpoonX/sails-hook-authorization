@@ -1,17 +1,15 @@
 "use strict";
 
-let requestHelpers = require('request-helpers');
+var requestHelpers = require('request-helpers');
+var _              = require('lodash');
 
 module.exports = {
-  login: function (req, res) {
-    let params = requestHelpers.secureParameters(['password'], req, true);
-    let accessToken;
-    let userQuery;
-
-    // favor username above email
-    if (!req.param('username') && !req.param('email')) {
-      params.setMissing('username');
-    }
+  login: (req, res) => {
+    var authService   = sails.services.authservice;
+    var authConfig    = sails.config.auth;
+    var loginProperty = authConfig.loginProperty;
+    var params        = requestHelpers.secureParameters(['password', loginProperty], req, true);
+    var user, accessToken;
 
     if (!params.isValid()) {
       return res.badRequest('missing_parameters', params.getMissing());
@@ -19,62 +17,45 @@ module.exports = {
 
     params = params.asObject();
 
-    // grab user based on given field
-    userQuery = {
-      username: req.param('username').toLowerCase()
-    };
-
-    if (params.email) {
-      userQuery = {
-        email: req.param('email').toLowerCase()
-      };
-    }
-
-    User.findOne(userQuery).then(function (user) {
-
-      if (typeof user !== 'object') {
-        return res.badRequest('invalid_credentials');
-      }
-
-      // verify password
-      user.isPasswordValid(params.password, function (error, result) {
-        if (error) {
-          return res.negotiate(error);
+    sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty])
+      .then(foundUser => {
+        if (typeof foundUser !== 'object') {
+          throw 'invalid_credentials';
         }
 
-        if (!result) {
-          return res.badRequest('invalid_credentials');
+        user = foundUser;
+
+        return authService.validatePassword(params.password, foundUser.password);
+      })
+      .then(() => {
+        if (authConfig.requireEmailVerification && !user.emailConfirmed) {
+          throw 'email_not_confirmed';
         }
 
-        if (sails.config.jwt.requireAccountActivation && !user.emailConfirmed) {
-          return res.badRequest('not_confirmed', 'user hasn\'t confirmed his email address yet');
-        }
+        accessToken = authService.issueTokenForUser(user);
 
-        // generate token
-        accessToken = Auth.issueToken({user: user.id, username: user.username}, {expiresIn: sails.config.jwt.ttl.accessToken});
-
-        res.ok({
+        return res.ok({
           access_token : accessToken,
-          // generated `refresh_token` based on the `iat` of the `access_token` and the `user.id` (security)
-          refresh_token: Auth.issueToken(
-            {unique   : Auth.decodeToken(accessToken).iat + '.' + user.id}, // `iat` means `issued at timestamp`
-            {expiresIn: sails.config.jwt.ttl.refreshToken}
-          )
+          refresh_token: authService.issueRefreshTokenForUser(accessToken)
         });
+      })
+      .catch(error => {
+        if (typeof error === 'string') {
+          return res.badRequest(error);
+        }
+
+        return res.negotiate(error);
       });
-    }).catch(res.negotiate);
   },
 
-  me: function (req, res) {
+  me: (req, res) => {
     User.findOne(req.access_token.user)
-      .then(function (user) {
-        res.ok(user);
-      })
+      .then(res.ok)
       .catch(res.negotiate);
   },
 
-  refreshToken : function (req, res) {
-    let params = requestHelpers.secureParameters(['access_token', 'refresh_token'], req, true);
+  refreshToken: (req, res) => {
+    var params = requestHelpers.secureParameters(['access_token', 'refresh_token'], req, true);
 
     if (!params.isValid()) {
       return res.badRequest('missing_parameters', params.getMissing());
@@ -82,19 +63,19 @@ module.exports = {
 
     params = params.asObject();
 
-    Auth.validateRefreshToken(params.access_token, params.refresh_token, function (err, newTokens) {
-      if (err) {
-        return res.badRequest(err);
-      }
-
-      res.ok(newTokens);
-    });
+    sails.services.authservice
+      .validateRefreshToken(params.access_token, params.refresh_token)
+      .then(res.ok)
+      .catch(res.badRequest);
   },
 
-  signup: function (req, res) {
-    let params = requestHelpers.secureParameters(['username', 'email', 'password', 'passwordConfirm'], req, true);
-    let config = sails.config.jwt;
-    let accessToken;
+  signup: (req, res) => {
+    var authConfig     = sails.config.auth;
+    var loginProperty  = authConfig.loginProperty;
+    var paramBlueprint = [loginProperty, 'password', {param: (loginProperty === 'email')? 'username' : 'email', required: false}]
+    var params         = requestHelpers.secureParameters(paramBlueprint, req, true);
+    var authService    = sails.services.authservice;
+    var accessToken;
 
     if (!params.isValid()) {
       return res.badRequest('missing_parameters', params.getMissing());
@@ -102,87 +83,60 @@ module.exports = {
 
     params = params.asObject();
 
-    if (params.password !== params.passwordConfirm ) {
-      return res.badRequest('password_mismatch');
-    }
-
-    params.username = params.username.toLowerCase();
-    params.email    = params.email.toLowerCase();
-
-    // check if username and email are unique
-    User.findOne({
-      or: [
-        {username: params.username},
-        {email   : params.email}
-      ]
-    }).then(function (userExists) {
+    sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]).then(userExists => {
       if (!userExists) {
-        return;
+        return params;
       }
 
-      if (userExists.username === params.username) {
-        return res.badRequest('exists_username', 'username is already in use');
+      throw userExists.email === params.email ? 'exists_email' : 'exists_username';
+    })
+    .then(sails.models.user.create)
+    .then(user => {
+      if (!authConfig.requireEmailVerification) {
+        return user;
       }
 
-      res.badRequest('exists_email', 'email is already in use');
-    }).then(function () {
+      authConfig.sendVerificationEmail(user, sails.getBaseurl() + '/auth/verify-email/' + authService.issueToken({activate: user.id}));
 
-      // create user
-      User.create({
-        username: params.username,
-        email   : params.email,
-        password: params.password
-      }).then(function(user) {
+      return res.ok();
+    }).then((user) => {
+      accessToken = authService.issueTokenForUser(user);
 
-        if (config.requireAccountActivation) {
-          if (config.sendAccountActivationEmail === 'function') {
-            sails.config.jwt.sendAccountActivationEmail(user, sails.getBaseurl() + '/activate/' + Auth.issueToken({activate: user.id}));
-          } else {
-            sails.log.error('sails-hook-jwt-auhtorization:: An email function must be implemented through `sails.config.jwt.sendAccountActivationEmail` in order to enable the account activation feature. This will receive two parameters (user, activationUrl).');
-          }
-
-          return res.ok({status: 'ok'});
-        }
-
-        accessToken = Auth.issueToken({user: user.id, username: user.username}, {expiresIn: config.ttl.accessToken});
-
-        res.ok({
-          access_token : accessToken,
-          refresh_token: Auth.issueToken(
-            {unique   : Auth.decodeToken(accessToken).iat + '.' + user.id}, // `iat` means `issued at timestamp`
-            {expiresIn: config.ttl.refreshToken}
-          )
-        });
-      }).catch(res.badRequest);
-    });
+      res.ok({
+        access_token : accessToken,
+        refresh_token: authService.issueRefreshTokenForUser(accessToken)
+      });
+    }).catch(res.badRequest);
   },
 
-  activate: function (req, res){
-    let params = requestHelpers.secureParameters(['token'], req, true);
+  verifyEmail: (req, res) => {
+    var params = requestHelpers.secureParameters(['token'], req, true);
 
-    Auth.verifyToken(params.token, function (err, decodedToken){
-      if (err) {
-        return res.badRequest('invalid_token');
-      }
+    if (!params.isValid()) {
+      return res.badRequest('missing_parameters', params.getMissing());
+    }
 
-      User.findOne(decodedToken.activate).find(function (err, user){
-        if (err) {
-          return res.badRequest(err);
-        }
+    params = params.asObject();
 
+    sails.services.authService.verifyToken(params.token)
+      .then(decodedToken => {
+        return sails.models.user.findOneId(decodedToken.activate);
+      }).then(user => {
         if (!user) {
-          return res.badRequest('invalid_user');
+          throw 'invalid_user';
         }
 
         user.emailConfirmed = true;
-        user.save(function (err, savedUser){
-          if (err) {
-            return res.badRequest(err);
-          }
 
-          return res.ok({status: 'ok'});
-        });
-      }).catch(res.negotiate);
-    });
+        return user.save();
+      }).then(() => {
+        res.ok();
+      }).catch(error => {
+        if (typeof error === 'string') {
+          return res.badRequest(error);
+        }
+
+        return res.negotiate(error);
+      });
   }
 };

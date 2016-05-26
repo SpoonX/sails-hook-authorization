@@ -1,8 +1,8 @@
 module.exports.policies = {
   AuthController: {
-    login       : [],
+    login       : true,
     me          : ['verifyToken', 'ensureToken'],
-    refreshToken: [],
-    signup      : []
+    refreshToken: true,
+    signup      : true
   }
 };
