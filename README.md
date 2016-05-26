@@ -16,6 +16,10 @@ module.exports.validatePassword = function(currentPassword, oldPassword) {
   return Promise.resolve(true);
 };
 
+module.exports.findAccessToken = function(req) {
+  return accessToken;
+};
+
 module.exports.issueTokenForUser = function(user) {
   return token;
 };

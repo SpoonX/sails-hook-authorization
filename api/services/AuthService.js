@@ -92,7 +92,7 @@ class AuthService {
 
   get config() {
     if (!this._config) {
-      this._config = sails.config.auth;
+      this._config = sails.config.auth.jwt;
     }
 
     return this._config;
@@ -123,12 +123,12 @@ class AuthService {
   }
 
   issueTokenForUser(user) {
-    return this.issueToken({user: user.id, username: user.username}, {expiresIn: this.config.ttl.accessToken});
+    return this.issueToken({user: user.id, username: user.username}, {expiresIn: this.config.accessTokenTtl});
   }
 
   issueToken(payload, options) {
     options           = options || {};
-    options.expiresIn = options.expiresIn || this.config.ttl.accessToken;
+    options.expiresIn = options.expiresIn || this.config.accessTokenTtl;
 
     return this.jwt.sign(payload, this.secret, options);
   }
@@ -136,7 +136,7 @@ class AuthService {
   issueRefreshTokenForUser(token) {
     var payload = this.decodeToken(token);
 
-    return this.issueToken({unique: payload.iat + '.' + payload.user}, {expiresIn: this.config.ttl.refreshToken});
+    return this.issueToken({unique: payload.iat + '.' + payload.user}, {expiresIn: this.config.refreshTokenTtl});
   }
 
   verifyToken(testToken) {
@@ -167,6 +167,42 @@ class AuthService {
     });
   }
 
+  /**
+   * Find the access token on req (convenience method).
+   *
+   * @param {Request} req
+   * @return {null|{}}
+   */
+  findAccessToken(req) {
+    var accessToken;
+
+    // check authorization headers
+    if (req.headers && req.headers.authorization) {
+      var parts = req.headers.authorization.split(' ');
+
+      if (parts.length !== 2) {
+        throw {error: 'invalid_token', details: 'Format is Authorization: Bearer [access_token]'};
+      }
+
+      var scheme      = parts[0];
+      var credentials = parts[1];
+
+      if (/^Bearer$/i.test(scheme)) {
+        accessToken = credentials;
+      }
+    } else if (req.param('access_token')) {
+      accessToken = req.param('access_token');
+    } else {
+      // request didn't contain required JWT token
+      return null;
+    }
+
+    req.body && delete req.body.access_token;
+    req.query && delete req.query.access_token;
+
+    return accessToken;
+  }
+
   validateRefreshToken(accessToken, refreshToken) {
     var decodedToken = this.decodeToken(accessToken, {complete: true}) || {};
 
@@ -183,7 +219,7 @@ class AuthService {
 
         delete decodedToken.payload.iat; // generate a new one
 
-        return this.refreshToken(decodedToken, this.config.ttl.accessToken);
+        return this.refreshToken(decodedToken, this.config.accessTokenTtl);
       })
       .then(accessToken => {
         return {

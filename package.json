@@ -1,6 +1,6 @@
 {
   "name": "sails-hook-authorization",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A JWT authentication system",
   "main": "index.js",
   "scripts": {
