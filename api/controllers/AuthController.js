@@ -7,7 +7,7 @@ module.exports = {
     var authService   = sails.services.authservice;
     var authConfig    = sails.config.auth;
     var loginProperty = authConfig.identityOptions.loginProperty;
-    var params        = requestHelpers.secureParameters(['password', loginProperty], req, true);
+    var params        = requestHelpers.secureParameters([{param: 'password', cast: 'string'}, loginProperty], req, true);
     var user, accessToken;
 
     if (!params.isValid()) {
@@ -80,7 +80,7 @@ module.exports = {
   signup: (req, res) => {
     var authConfig     = sails.config.auth;
     var loginProperty  = authConfig.identityOptions.loginProperty;
-    var paramBlueprint = authConfig.identityOptions.parameterBlueprint.concat(['password']);
+    var paramBlueprint = authConfig.identityOptions.parameterBlueprint.concat([{param: 'password', cast: 'string'}]);
     var params         = requestHelpers.secureParameters(paramBlueprint, req, true);
     var authService    = sails.services.authservice;
     var accessToken;
