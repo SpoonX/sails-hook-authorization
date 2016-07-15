@@ -48,7 +48,33 @@ module.exports.issueRefreshTokenForUser = function(token) {
 module.exports.validateRefreshToken = function(accessToken, refreshToken) {
   return Promise.resolve(tokens);
 };
+
+// set the token payload issued by login
+module.exports.payloadBuilder = function (user, payload) {
+  payload.foo = 'bar';
+
+  return payload;
+}
 ```
+
+## payloadBuilder()
+It's possible to override `payloadBuilder()` with your own function. This allows you to extend/populate the token payload with custom data or logic.
+
+### properties
+You can extend the token payload by giving setting `sails.config.auth.jwt.payloadProperties`. The user object is used to populate the properties.
+
+Example:
+```js
+  let properties = ['disabled', {groups: 'id'}];
+
+  return {
+    user    : user.id,       // default
+    username: user.username, // default
+    disabled: user.disabled,
+    groups  : [3, 4, 6] // get the id's from an array with objects
+  }
+```
+
 
 # Policy
 The `verifyToken.js` and `ensureToken.js` policies are just like any other Sails policy and can be applied as such. It's responsible for parsing the token from the incoming request and validating it's state.
