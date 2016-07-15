@@ -51,7 +51,9 @@ module.exports.validateRefreshToken = function(accessToken, refreshToken) {
 
 // set the token payload issued by login
 module.exports.payloadBuilder = function (user, payload) {
-  return tokenPayloadObject;
+  payload.foo = 'bar';
+
+  return payload;
 }
 ```
 
