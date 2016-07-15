@@ -87,7 +87,8 @@ jwt.refresh = function(token, expiresIn, secretOrPrivateKey, callback) {
 
 class AuthService {
   constructor() {
-    this.jwt = jwt;
+    this.jwt            = jwt;
+    this.payloadBuilder = this.defaultPayloadBuilder;
   }
 
   get config() {
@@ -123,7 +124,7 @@ class AuthService {
   }
 
   issueTokenForUser(user) {
-    return this.issueToken({user: user.id, username: user.username}, {expiresIn: this.config.accessTokenTtl});
+    return this.issueToken(this.payloadBuilder(user, {user: user.id, username: user.username}));
   }
 
   issueToken(payload, options) {
@@ -230,6 +231,21 @@ class AuthService {
       .catch(error => {
         throw error.name === 'TokenExpiredError' ? 'expired_refresh_token' : 'invalid_refresh_token';
       });
+  }
+
+  defaultPayloadBuilder(user, payload) {
+    payload = payload || {};
+
+    this.config.payloadProperties.forEach(property => {
+      if (typeof property === 'string') {
+        return payload[property] = user[property];
+      }
+
+      let propertyKey      = Object.getOwnPropertyNames(property)[0];
+      payload[propertyKey] = _.map(user[propertyKey], property[propertyKey]);
+    });
+
+    return payload;
   }
 }
 
