@@ -104,17 +104,26 @@ module.exports = {
           return user;
         }
 
-        authConfig.sendVerificationEmail(user, sails.getBaseurl() + '/auth/verify-email/' + authService.issueToken({activate: user.id}));
+        // return given password instead of encrypted one
+        user.password = params.password;
 
-        return res.ok();
+        authConfig.sendVerificationEmail(user, authService.issueToken({activate: user.id}));
+
+        delete user.password;
+
+        return user;
       }).then((user) => {
-      accessToken = authService.issueTokenForUser(user);
+        if (!authConfig.identityOptions.requireEmailVerification) {
+          return res.ok(user);
+        }
 
-      res.ok({
-        access_token : accessToken,
-        refresh_token: authService.issueRefreshTokenForUser(accessToken)
-      });
-    }).catch(res.badRequest);
+        accessToken = authService.issueTokenForUser(user);
+
+        res.ok({
+          access_token : accessToken,
+          refresh_token: authService.issueRefreshTokenForUser(accessToken)
+        });
+      }).catch(res.badRequest);
   },
 
   verifyEmail: (req, res) => {
