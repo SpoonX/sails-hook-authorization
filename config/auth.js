@@ -1,7 +1,7 @@
 module.exports.auth = {
 
-  sendVerificationEmail: (user, activateUrl) => {
-    sails.log.error('sails-hook-authorization:: An email function must be implemented through `sails.config.auth.sendVerificationEmail` in order to enable the email verification feature. This will receive two parameters (user, activationLink).');
+  sendVerificationEmail: (user, activateToken) => {
+    sails.log.error('sails-hook-authorization:: An email function must be implemented through `sails.config.auth.sendVerificationEmail` in order to enable the email verification feature. This will receive two parameters (user, activationToken).');
   },
 
   // Options concerning a user's identity
