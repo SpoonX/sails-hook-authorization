@@ -22,7 +22,7 @@ module.exports = {
       defaultsTo: false
     },
 
-    toJSON: () => {
+    toJSON: function() {
       var values = this.toObject();
 
       delete values.password;
