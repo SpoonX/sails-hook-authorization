@@ -113,7 +113,7 @@ module.exports = {
 
         return user;
       }).then((user) => {
-        if (!authConfig.identityOptions.requireEmailVerification) {
+        if (authConfig.identityOptions.requireEmailVerification) {
           return res.ok(user);
         }
 
