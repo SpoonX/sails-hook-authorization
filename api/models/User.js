@@ -32,7 +32,22 @@ module.exports = {
   },
 
   beforeCreate: encryptPassword,
-  beforeUpdate: encryptPassword
+  beforeUpdate: (values, next) => {
+    if (!values.password) {
+      delete values.password;
+
+      return next();
+    }
+
+    try {
+      // check if the password is already hashed
+      bcrypt.getRounds(values.password);
+    } catch(e) {
+      return encryptPassword(values, next);
+    }
+
+    next();
+  }
 };
 
 function encryptPassword(values, next) {
