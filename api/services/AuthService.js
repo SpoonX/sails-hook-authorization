@@ -242,7 +242,16 @@ class AuthService {
       }
 
       let propertyKey      = Object.getOwnPropertyNames(property)[0];
-      payload[propertyKey] = _.map(user[propertyKey], property[propertyKey]);
+      let properties       = property[propertyKey];
+      payload[propertyKey] = {};
+
+      if (!user[propertyKey]) {
+        return;
+      }
+
+      properties.forEach(nestedProperty => {
+        payload[propertyKey][nestedProperty] = user[propertyKey][nestedProperty];
+      });
     });
 
     return payload;
