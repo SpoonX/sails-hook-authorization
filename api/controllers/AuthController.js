@@ -16,7 +16,7 @@ module.exports = {
 
     params = params.asObject();
 
-    sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty])
+    sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]).populateAll()
       .then(foundUser => {
         if (typeof foundUser !== 'object') {
           throw 'invalid_credentials';
@@ -99,6 +99,7 @@ module.exports = {
       throw userExists.email === params.email ? 'exists_email' : 'exists_username';
     })
       .then(sails.models.user.create)
+      .then(user => sails.models.user.findOne(user.id).populateAll().then())
       .then(user => {
         if (!authConfig.identityOptions.requireEmailVerification) {
           return user;
