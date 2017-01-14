@@ -113,7 +113,7 @@ module.exports = {
           return params;
         }
 
-        throw userExists.email === params.email ? 'exists_email' : 'exists_username';
+        throw userExists.email === params.email && loginProperty === 'email' ? 'exists_email' : 'exists_username';
       })
       .then(newUser => {
         if (authConfig.wetland) {
