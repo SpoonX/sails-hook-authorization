@@ -22,5 +22,7 @@ module.exports.auth = {
     accessTokenTtl   : process.env.JWT_TOKEN_TTL || 86400,  // 1 day
     refreshTokenTtl  : process.env.JWT_REFRESH_TOKEN_TTL || 2592000, // 30 days
     secret           : process.env.JWT_SECRET || 'superSecretForDev'
-  }
+  },
+
+  wetland: false
 };

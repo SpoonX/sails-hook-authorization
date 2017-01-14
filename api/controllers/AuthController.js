@@ -8,7 +8,7 @@ module.exports = {
     var authConfig    = sails.config.auth;
     var loginProperty = authConfig.identityOptions.loginProperty;
     var params        = requestHelpers.secureParameters([{param: 'password', cast: 'string'}, loginProperty], req, true);
-    var user, accessToken;
+    var user, accessToken, findUser;
 
     if (!params.isValid()) {
       return res.badRequest('missing_parameters', params.getMissing());
@@ -16,7 +16,13 @@ module.exports = {
 
     params = params.asObject();
 
-    sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]).populateAll()
+    if (authConfig.wetland) {
+      findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: true});
+    } else {
+      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]).populateAll();
+    }
+
+    findUser
       .then(foundUser => {
         if (typeof foundUser !== 'object') {
           throw 'invalid_credentials';
@@ -48,7 +54,9 @@ module.exports = {
   },
 
   me: (req, res) => {
-    User.findOne(req.access_token.user)
+    let model = sails.config.auth.wetland ? req.getRepository(sails.models.user.Entity) : sails.models.user;
+
+    model.findOne(req.access_token.user)
       .then(res.ok)
       .catch(res.negotiate);
   },
@@ -83,7 +91,7 @@ module.exports = {
     var paramBlueprint = authConfig.identityOptions.parameterBlueprint.concat([{param: 'password', cast: 'string'}]);
     var params         = requestHelpers.secureParameters(paramBlueprint, req, true);
     var authService    = sails.services.authservice;
-    var accessToken;
+    var accessToken, manager, findUser, UserEntity;
 
     if (!params.isValid()) {
       return res.badRequest('missing_parameters', params.getMissing());
@@ -91,15 +99,38 @@ module.exports = {
 
     params = params.asObject();
 
-    sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]).then(userExists => {
-      if (!userExists) {
-        return params;
-      }
+    if (authConfig.wetland) {
+      UserEntity = sails.models.user.Entity;
+      manager    = req.getManager();
+      findUser   = manager.getRepository(UserEntity).findOne({[loginProperty]: params[loginProperty]});
+    } else {
+      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]);
+    }
 
-      throw userExists.email === params.email ? 'exists_email' : 'exists_username';
-    })
-      .then(sails.models.user.create)
-      .then(user => sails.models.user.findOne(user.id).populateAll().then())
+    findUser
+      .then(userExists => {
+        if (!userExists) {
+          return params;
+        }
+
+        throw userExists.email === params.email ? 'exists_email' : 'exists_username';
+      })
+      .then(newUser => {
+        if (authConfig.wetland) {
+          let newRecord = req.wetland.getPopulator(manager).assign(UserEntity, newUser);
+
+          return manager.persist(newRecord).flush();
+        }
+
+        return sails.models.user.create(newUser).then();
+      })
+      .then(user => {
+        if (authConfig.wetland) {
+          return manager.getRepository(UserEntity).findOne(user.id, {populate: true});
+        }
+
+        return sails.models.user.findOne(user.id).populateAll().then();
+      })
       .then(user => {
         if (!authConfig.identityOptions.requireEmailVerification) {
           return user;
@@ -134,10 +165,18 @@ module.exports = {
       return res.badRequest('missing_parameters', params.getMissing());
     }
 
+    var manager;
+
     params = params.asObject();
 
     sails.services.authService.verifyToken(params.token)
       .then(decodedToken => {
+        if (sails.config.auth.wetland) {
+          manager = req.getManager();
+
+          return manager.getRepository(sails.models.user.Entity).findOne(decodedToken.activate);
+        }
+
         return sails.models.user.findOneId(decodedToken.activate);
       }).then(user => {
       if (!user) {
@@ -145,6 +184,10 @@ module.exports = {
       }
 
       user.emailConfirmed = true;
+
+      if (sails.config.auth.wetland) {
+        return manager.flush();
+      }
 
       return user.save();
     }).then(() => {
