@@ -4,7 +4,8 @@
   "description": "A JWT authentication system",
   "main": "index.js",
   "scripts": {
-    "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/integration/**/*.test.js"
+    "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.test.js test/integration/**/*.test.js",
+    "postpublish": "git push upstream master && git push upstream --tags"
   },
   "author": {
     "name": "Vijay Bindraban",
