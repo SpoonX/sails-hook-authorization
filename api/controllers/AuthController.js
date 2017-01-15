@@ -24,7 +24,7 @@ module.exports = {
 
     findUser
       .then(foundUser => {
-        if (typeof foundUser !== 'object') {
+        if (typeof foundUser !== 'object' || !foundUser) {
           throw 'invalid_credentials';
         }
 
