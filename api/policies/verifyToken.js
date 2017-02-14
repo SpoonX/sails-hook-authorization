@@ -18,9 +18,9 @@ module.exports = (req, res, next) => {
     return next();
   }).catch(error => {
     if (error.name === 'TokenExpiredError') {
-      return res.forbidden(res, 'expired_token');
+      return res.forbidden('expired_token');
     }
 
-    res.forbidden(res, 'invalid_token');
+    res.forbidden('invalid_token');
   });
 };
