@@ -1,4 +1,5 @@
 # sails-hook-authorization
+
 Hook that provides jwt authentication sails-compatible scheme, such as policies, routes, controllers, services.
 Based on https://github.com/saviogl/sails-hook-jwt-auth
 
@@ -9,6 +10,7 @@ npm install sails-hook-authorization --save
 ```
 
 ## Configuration
+
 This hook has support for working with [wetland](https://github.com/SpoonX/wetland) assuming you're using the [wetland hook for sails](https://github.com/SpoonX/sails-hook-wetland). You can enable this by adding the following in `config/auth.js`:
 
 ```js
@@ -17,7 +19,57 @@ module.exports.auth = {
 };
 ```
 
+### Options
+
+This hook supports configuration options to make it fit into your application.
+
+```js
+module.exports.auth = {
+
+  // Your implementation for sending out the verification email
+  sendVerificationEmail: (user, activateToken) => {
+    // @todo implement
+  },
+
+  // Options concerning a user's identity
+  identityOptions: {
+
+    // Property to use for login (one of "email" or "username").
+    loginProperty: 'username',
+
+    // Parameters for user sign-up. @see https://www.npmjs.com/package/request-helpers
+    parameterBlueprint: ['username', {param: 'email', required: false}],
+
+    // Option to define which relations to populate on the user find
+    // can be an array (of relations), a string (single relation), or a boolean (all or nothing).
+    populate: true,
+
+    // Whether or not you wish to require a user to validate their email address before being able to log in.
+    requireEmailVerification: false
+  },
+
+  jwt: {
+    // Properties to store on the token. Useful for instance to store the user's role, or language.
+    // Accepts nested arguments. E.g.: ['role', {locale: ['language', 'locale']}]
+    payloadProperties: [],
+    
+    // Time to live for the access token
+    accessTokenTtl: 86400,  // 1 day
+    
+    // Time to live for the refresh token
+    refreshTokenTtl: 2592000, // 30 days
+    
+    // The secret used to sign tokens with.
+    secret: 'superSecretKeyForJwt'
+  },
+
+  // If you're using wetland (requires different query types)
+  wetland: true
+};
+```
+
 ## Service
+
 This module globally expose a service which integrates with the jsonwebtoken (https://github.com/auth0/node-jsonwebtoken) and provide the interface to apply the jwt specification (http://self-issued.info/docs/draft-ietf-oauth-json-web-token.html).
 
 ```javascript
@@ -67,9 +119,11 @@ module.exports.payloadBuilder = function (user, payload) {
 ```
 
 ### payloadBuilder()
+
 It's possible to override `payloadBuilder()` with your own function. This allows you to extend/populate the token payload with custom data or logic.
 
 #### properties
+
 You can extend the token payload by giving setting `sails.config.auth.jwt.payloadProperties`. The user object is used to populate the properties.
 
 Example:
@@ -86,6 +140,7 @@ Example:
 
 
 ## Policy
+
 The `verifyToken.js` and `ensureToken.js` policies are just like any other Sails policy and can be applied as such. It's responsible for parsing the token from the incoming request and validating it's state.
 
 Use it as you would use any other sails policy to enable authentication restriction to your `Controllers/Actions`:
@@ -99,10 +154,12 @@ module.exports.policies = {
 ```
 
 ## Model
+
 This hook sets up a basic `User` model with some defaults attributes required to implement the jwt authentication
 scheme such as `username`, `email` and `emailConfirmed`. The `User` model can be extended with any property you want by defining it in your own Sails project.
 
 ## Routes
+
 These are the routes provided by this hook:
 
 ```javascript
@@ -116,6 +173,7 @@ module.exports.routes = {
 ```
 
 ### POST /auth/login
+
 The request to this route `/auth/login` must be sent with these body parameters:
 
 ```javascript
@@ -141,6 +199,7 @@ If the `access_token` is expired you can expect the `expired_token` error.
 
 
 ### POST /auth/signup
+
 The request to this route `/signup` must be sent with these body parameters:
 
 ```javascript
@@ -163,7 +222,9 @@ If the email verification feature is disabled, the response will be the same as 
 If it's enabled you will get a 200 as response:
 
 ### GET /auth/activate/:token
+
 #### Account Activation
+
 This feature is off by default and to enable it you must override the `requireEmailVerification` configuration and implement the function `sendVerificationEmail`:
 
 ```javascript
@@ -185,9 +246,11 @@ module.exports.auth = {
 ```
 
 ### GET /auth/me
+
 Returns the user, token protected area.
 
 ### POST /auth/refresh-token
+
 Refreshes the `access_token` based on the `refresh_token`.
 If the `refresh_token` is expired it will return `expired_refresh_token` and the user must login through `/login`
 
