@@ -7,6 +7,7 @@ module.exports = {
     var authService   = sails.services.authservice;
     var authConfig    = sails.config.auth;
     var loginProperty = authConfig.identityOptions.loginProperty;
+    var populate      = authConfig.identityOptions.populate;
     var params        = requestHelpers.secureParameters([{param: 'password', cast: 'string'}, loginProperty], req, true);
     var user, accessToken, findUser;
 
@@ -17,9 +18,19 @@ module.exports = {
     params = params.asObject();
 
     if (authConfig.wetland) {
-      findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: true});
+      findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: populate});
     } else {
-      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]).populateAll();
+      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]);
+
+      if (true === populate) {
+        findUser.populateAll();
+      } else if (Array.isArray(populate)) {
+        populate.forEach(function (relation) {
+          findUser.populate(relation);
+        })
+      } else if (typeof populate === 'string') {
+        findUser.populate(populate);
+      }
     }
 
     findUser
@@ -90,6 +101,7 @@ module.exports = {
     var loginProperty  = authConfig.identityOptions.loginProperty;
     var paramBlueprint = authConfig.identityOptions.parameterBlueprint.concat([{param: 'password', cast: 'string'}]);
     var params         = requestHelpers.secureParameters(paramBlueprint, req, true);
+    var populate       = authConfig.identityOptions.populate;
     var authService    = sails.services.authservice;
     var accessToken, manager, findUser, UserEntity;
 
@@ -125,11 +137,27 @@ module.exports = {
         return sails.models.user.create(newUser).then();
       })
       .then(user => {
+        let findUser;
+
         if (authConfig.wetland) {
-          return manager.getRepository(UserEntity).findOne(user.id, {populate: true});
+          findUser = manager.getRepository(UserEntity).findOne(user.id, {populate: populate});
+        } else {
+          findUser = sails.models.user.findOne(user.id);
+
+          if (true === populate) {
+            findUser.populateAll();
+          } else if (Array.isArray(populate)) {
+            populate.forEach(function(relation) {
+              findUser.populate(relation);
+            })
+          } else if (typeof populate === 'string') {
+            findUser.populate(populate);
+          }
+
+          findUser.then();
         }
 
-        return sails.models.user.findOne(user.id).populateAll().then();
+        return findUser;
       })
       .then(user => {
         if (!authConfig.identityOptions.requireEmailVerification) {
