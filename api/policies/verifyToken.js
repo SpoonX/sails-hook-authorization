@@ -13,14 +13,20 @@ module.exports = (req, res, next) => {
 
   // verify JWT token
   sails.services.authservice.verifyToken(accessToken).then(payload => {
+    if (!payload.user) {
+      return res.badRequest('wrong_token');
+    }
+
     req.access_token = payload;
 
     return next();
   }).catch(error => {
+    var message = 'invalid_token';
+
     if (error.name === 'TokenExpiredError') {
-      return res.forbidden('expired_token');
+      message = 'expired_token';
     }
 
-    res.forbidden('invalid_token');
+    res.forbidden(message);
   });
 };
