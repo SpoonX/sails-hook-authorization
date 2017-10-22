@@ -17,10 +17,19 @@ module.exports = {
 
     params = params.asObject();
 
+    var finduser;
+
     if (authConfig.wetland) {
       findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: populate});
     } else {
-      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]);
+      sails.models.user.findOne({username: 'test'}).exec(function (err, user){
+        finduser = user;
+      });
+
+          console.log ('findUser: ' + finduser);
+
+
+
 
       if (true === populate) {
         findUser.populateAll();
@@ -116,7 +125,9 @@ module.exports = {
       manager    = req.getManager();
       findUser   = manager.getRepository(UserEntity).findOne({[loginProperty]: params[loginProperty]});
     } else {
-      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]);
+      sails.models.user.findOne({username: 'test'}).exec(function (err, user){
+        finduser = user;
+      });
     }
 
     findUser
@@ -134,7 +145,7 @@ module.exports = {
           return manager.persist(newRecord).flush();
         }
 
-        return sails.models.user.create(newUser).then();
+        return sails.models.user.create(newUser).meta({fetch: true}).then();
       })
       .then(user => {
         let findUser;
@@ -142,7 +153,10 @@ module.exports = {
         if (authConfig.wetland) {
           findUser = manager.getRepository(UserEntity).findOne(user.id, {populate: populate});
         } else {
-          findUser = sails.models.user.findOne(user.id);
+
+          sails.models.user.findOne(user.id).exec(function (err, user){
+            finduser = user;
+          });
 
           if (true === populate) {
             findUser.populateAll();
@@ -205,7 +219,11 @@ module.exports = {
           return manager.getRepository(sails.models.user.Entity).findOne(decodedToken.activate);
         }
 
-        return sails.models.user.findOneId(decodedToken.activate);
+
+        sails.models.user.findOne(decodedToken.activate).exec(function (err, user){
+          return user;
+        });
+
       }).then(user => {
       if (!user) {
         throw 'invalid_user';

@@ -1,15 +1,19 @@
 var bcrypt = require('bcrypt');
 
+
 module.exports = {
   attributes: {
     username: {
       type : 'string',
-      index: true
+      required:true,
+      unique: true
     },
 
     email: {
-      type : 'email',
-      index: true
+      type : 'string',
+      required:true,
+      unique: true,
+      isEmail: true,
     },
 
     password: {
@@ -20,16 +24,20 @@ module.exports = {
     emailConfirmed: {
       type      : 'boolean',
       defaultsTo: false
-    },
-
-    toJSON: function() {
-      var values = this.toObject();
-
-      delete values.password;
-
-      return values;
     }
   },
+
+  customToJSON: function() {
+  // Return a shallow copy of this record with the password and ssn removed.
+  return _.omit(this, ['password' ])
+},
+
+/**
+   * @param userName
+   * @param callback
+   */
+
+
 
   beforeCreate: encryptPassword,
   beforeUpdate: (values, next) => {
