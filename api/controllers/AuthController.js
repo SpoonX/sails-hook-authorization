@@ -119,6 +119,7 @@ module.exports = {
     }
 
     params = params.asObject();
+    var finduser;
 
     if (authConfig.wetland) {
       UserEntity = sails.models.user.Entity;
