@@ -17,19 +17,12 @@ module.exports = {
 
     params = params.asObject();
 
-    var finduser;
+ 
 
     if (authConfig.wetland) {
       findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: populate});
     } else {
-      sails.models.user.findOne({username: 'test'}).exec(function (err, user){
-        finduser = user;
-      });
-
-          console.log ('findUser: ' + finduser);
-
-
-
+      findUser = sails.models.user.findOne({[loginProperty]: params[loginProperty]});
 
       if (true === populate) {
         findUser.populateAll();
@@ -119,16 +112,13 @@ module.exports = {
     }
 
     params = params.asObject();
-    var finduser;
 
     if (authConfig.wetland) {
       UserEntity = sails.models.user.Entity;
       manager    = req.getManager();
       findUser   = manager.getRepository(UserEntity).findOne({[loginProperty]: params[loginProperty]});
     } else {
-      sails.models.user.findOne({username: 'test'}).exec(function (err, user){
-        finduser = user;
-      });
+      findUser = sails.models.user.findOne({[loginProperty]: params[loginProperty]});
     }
 
     findUser
@@ -154,10 +144,7 @@ module.exports = {
         if (authConfig.wetland) {
           findUser = manager.getRepository(UserEntity).findOne(user.id, {populate: populate});
         } else {
-
-          sails.models.user.findOne(user.id).exec(function (err, user){
-            finduser = user;
-          });
+          findUser = sails.models.user.findOne(user.id);
 
           if (true === populate) {
             findUser.populateAll();

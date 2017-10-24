@@ -28,16 +28,9 @@ module.exports = {
   },
 
   customToJSON: function() {
-  // Return a shallow copy of this record with the password and ssn removed.
-  return _.omit(this, ['password' ])
-},
-
-/**
-   * @param userName
-   * @param callback
-   */
-
-
+  // Return a shallow copy of this record with the password.
+    return _.omit(this, ['password' ])
+  },
 
   beforeCreate: encryptPassword,
   beforeUpdate: (values, next) => {
