@@ -17,8 +17,6 @@ module.exports = {
 
     params = params.asObject();
 
- 
-
     if (authConfig.wetland) {
       findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: populate});
     } else {
@@ -208,9 +206,7 @@ module.exports = {
         }
 
 
-        sails.models.user.findOne(decodedToken.activate).exec(function (err, user){
-          return user;
-        });
+        return sails.models.user.findOne(decodedToken.activate);
 
       }).then(user => {
       if (!user) {
