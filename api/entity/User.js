@@ -44,7 +44,7 @@ module.exports = class User extends Entity {
    *
    * @returns {Promise}
    */
-  beforeUpdate() {
+  beforeUpdate(values) {
     if (!values.password) {
       return;
     }
