@@ -111,6 +111,8 @@ module.exports = {
 
     params = params.asObject();
 
+
+
     if (authConfig.wetland) {
       UserEntity = sails.models.user.Entity;
       manager    = req.getManager();
@@ -131,7 +133,7 @@ module.exports = {
         if (authConfig.wetland) {
           let newRecord = req.wetland.getPopulator(manager).assign(UserEntity, newUser);
 
-          return manager.persist(newRecord).flush();
+          return manager.persist(newRecord).flush().then(() => newRecord);
         }
 
         return sails.models.user.create(newUser).meta({fetch: true}).then();
