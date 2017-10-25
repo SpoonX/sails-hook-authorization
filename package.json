@@ -4,8 +4,7 @@
   "description": "A JWT authentication system",
   "main": "index.js",
   "scripts": {
-    "test": "node ./node_modules/mocha/bin/mocha test/bootstrap.orm.test.js test/integration/**/*.test.js",
-    "testWetLand": "node ./node_modules/mocha/bin/mocha test/bootstrap.orm.test.js test/integration/**/*.test.js",
+    "test": "./node_modules/mocha/bin/mocha test/bootstrap.orm.test.js test/integration/**/*.test.js; ./node_modules/mocha/bin/mocha test/bootstrap.wetland.test.js test/integration/**/*.test.js",
     "postpublish": "git push upstream master && git push upstream --tags"
   },
   "author": {
@@ -25,6 +24,7 @@
     "lodash": "^4.0.0",
     "request-helpers": "^2.0.1",
     "sails-build-dictionary": "^0.10.1",
+    "sails-hook-wetland": "^3.0.0",
     "sails-util": "^0.10.4"
   },
   "devDependencies": {
@@ -37,7 +37,6 @@
     "sails-hook-grunt": "^2.0.0",
     "sails-hook-orm": "^2.0.0-16",
     "sails-hook-sockets": "^1.4.0",
-    "sails-hook-wetland": "^3.0.0",
     "sails-memory": "^0.10.0-rc2",
     "socket.io-redis": "4.0.0",
     "sqlite3": "^3.1.13",

@@ -11,12 +11,15 @@ var testConfig = {
         },
       },
       hooks: {
-        "sails-hook-authorization": require('../'),
+        wetland: false,
+        "authorization": require('../'),
         grunt: false
       }
     };
 
 before(function (done) {
+
+  console.log('*** Start testing with ORM hook ***');
   // increase the Mocha timeout so that Sails has enough time to lift.
   this.timeout(20 * 1000);
 

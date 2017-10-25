@@ -1,5 +1,8 @@
     sails      = require('sails');
 var Barrels    = require('barrels');
+var path       = require('path');
+
+
 
 var testConfig = {
 
@@ -15,12 +18,14 @@ var testConfig = {
         },
       },
       hooks: {
-        "sails-hook-authorization": require('../'),
+        "authorization": require('../'),
         grunt: false
       }
     };
 
 before(function (done) {
+
+	console.log('*** Start testing with WETLAND hook ***')
   // increase the Mocha timeout so that Sails has enough time to lift.
   this.timeout(20 * 1000);
 
@@ -29,14 +34,16 @@ before(function (done) {
       return done(err);
     }
 
-    // load fixtures
-    //var barrels = new Barrels();
+const migrator = sails.wetland.getMigrator();
+const seeder = sails.wetland.getSeeder();
+const cleaner = sails.wetland.getCleaner();
 
-    // Populate the DB
-   // barrels.populate(function(err) {
-    done(err, server);
-    //});
-    //});
+cleaner.clean() // Will clean the database, NO MAGICAL GOING BACK
+    .then(() => migrator.devMigrations(false)) // Will actually do the migrations : needed here because the clean method wipes the database entirely
+    .then(() => done(err, server)) ;// Will seed accordingly to the configuration you gave wetland
+
+  
+ 
   });
 });
 
