@@ -1,4 +1,5 @@
 var bcrypt = require('bcrypt');
+var _      = require('lodash');
 
 
 module.exports = {

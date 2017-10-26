@@ -18,13 +18,11 @@
   },
   "dependencies": {
     "async": "^0.9.0",
-    "bcrypt": "^0.8.6",
-    "bcryptjs": "^2.4.3",
+    "bcrypt": "^1.0.3",
     "jsonwebtoken": "^6.2.0",
     "lodash": "^4.0.0",
     "request-helpers": "^2.0.1",
     "sails-build-dictionary": "^0.10.1",
-    "sails-hook-wetland": "^3.0.0",
     "sails-util": "^0.10.4"
   },
   "devDependencies": {
@@ -38,6 +36,8 @@
     "sails-hook-orm": "^2.0.0-16",
     "sails-hook-sockets": "^1.4.0",
     "sails-memory": "^0.10.0-rc2",
+    "sails-hook-wetland": "^3.0.0",
+    "wetland": "^2.4.0",
     "socket.io-redis": "4.0.0",
     "sqlite3": "^3.1.13",
     "supertest": "^1.2.0"

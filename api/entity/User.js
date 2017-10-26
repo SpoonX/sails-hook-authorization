@@ -1,4 +1,4 @@
-var bcrypt   = require('bcryptjs');
+var bcrypt   = require('bcrypt');
 var {Entity} = require('wetland');
 
 module.exports = class User extends Entity {
@@ -35,8 +35,7 @@ module.exports = class User extends Entity {
     }
 
     return bcrypt.hash(this.password, 10).then(hash => {
-      this.password = hash;
-    });
+      this.password = hash;    });
   }
 
   /**
@@ -53,11 +52,11 @@ module.exports = class User extends Entity {
       // check if the password is already hashed
       bcrypt.getRounds(values.password);
     } catch(e) {
-      return bcrypt.hash(this.password, 10).then(hash => {
-        this.password = hash;
+      return bcrypt.hash(values.password, 10).then(hash => {
+        values.password = hash;
       });
     }
-  }
+  }  
 
   /**
    * We don't want to expose the password to the world (even if it's hashed).
