@@ -203,13 +203,9 @@ module.exports = {
       .then(decodedToken => {
         if (sails.config.auth.wetland) {
           manager = req.getManager();
-
           return manager.getRepository(sails.models.user.Entity).findOne(decodedToken.activate);
         }
-
-
         return sails.models.user.findOne(decodedToken.activate);
-
       }).then(user => {
       if (!user) {
         throw 'invalid_user';
