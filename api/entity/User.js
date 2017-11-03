@@ -35,7 +35,7 @@ module.exports = class User extends Entity {
     }
 
     return bcrypt.hash(this.password, 10).then(hash => {
-      this.password = hash;    
+      this.password = hash;
     });
   }
 
@@ -57,7 +57,7 @@ module.exports = class User extends Entity {
         values.password = hash;
       });
     }
-  } 
+  }
 
   /**
    * We don't want to expose the password to the world (even if it's hashed).
