@@ -33,16 +33,12 @@ before(function (done) {
     if (err) {
       return done(err);
     }
+    const migrator = sails.wetland.getMigrator();
+    const cleaner = sails.wetland.getCleaner();
 
-  const migrator = sails.wetland.getMigrator();
-  const cleaner = sails.wetland.getCleaner();
-
-  cleaner.clean() // Will clean the database, NO MAGICAL GOING BACK
+    cleaner.clean() // Will clean the database, NO MAGICAL GOING BACK
       .then(() => migrator.devMigrations(false)) // Will actually do the migrations : needed here because the clean method wipes the database entirely
       .then(() => done(err, server)) ;// Will seed accordingly to the configuration you gave wetland
-
-
-
   });
 });
 

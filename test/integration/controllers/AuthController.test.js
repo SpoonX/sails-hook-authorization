@@ -18,8 +18,6 @@ describe('AuthController', () => {
   };
   var userIdToUpdate;
 
-  
-
   describe('#signup()', () => {
     it('should register the user', (done) => {
       request(sails.hooks.http.app)
@@ -145,13 +143,11 @@ describe('AuthController', () => {
           userIdToUpdate          = body[0].id;
 
           done();
-     
         });
     });
   });
 
-
-    describe('#update()', () => {
+  describe('#update()', () => {
     it('should update user with new password and email', (done) => {
 
       // udpate
@@ -163,8 +159,8 @@ describe('AuthController', () => {
           var body = response.body;
           var body                = response.body;
 
-
           assert.equal(body.email, updateCredentials.email);
+        
           done();
         });
     });
@@ -173,26 +169,21 @@ describe('AuthController', () => {
   describe('#login()', () => {
     it('should login with new credentials', (done) => {
       var authService = sails.services.authservice;
-
       // login
       request(sails.hooks.http.app)
         .post('/auth/login')
         .send(updateCredentials)
         .expect(200, (error, response) => {
-
           var body = response.body;
 
           assert.isDefined(body.access_token);
           assert.isDefined(body.refresh_token);
 
-
-
           authService.verifyToken(body.access_token).then(accessToken => {
             return authService.verifyToken(body.refresh_token).then(refreshToken => {
-
               // check if refreshToken unique matches the tokens `iat`
               assert.equal(refreshToken.unique, accessToken.iat + '.' + accessToken.user);
-
+        
               done();
             });
           }).catch(error => {
