@@ -157,7 +157,7 @@ describe('AuthController', () => {
         .expect(200, (error, response) => {
 
           var body = response.body;
-          var body                = response.body;
+          var body = response.body;
 
           assert.equal(body.email, updateCredentials.email);
         
