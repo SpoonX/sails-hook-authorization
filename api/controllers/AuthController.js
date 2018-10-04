@@ -20,7 +20,7 @@ module.exports = {
     if (authConfig.wetland) {
       findUser = req.getRepository(sails.models.user.Entity).findOne({[loginProperty]: params[loginProperty]}, {populate: populate});
     } else {
-      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]);
+      findUser = sails.models.user.findOne({[loginProperty]: params[loginProperty]});
 
       if (true === populate) {
         findUser.populateAll();
@@ -111,12 +111,14 @@ module.exports = {
 
     params = params.asObject();
 
+
+
     if (authConfig.wetland) {
       UserEntity = sails.models.user.Entity;
       manager    = req.getManager();
       findUser   = manager.getRepository(UserEntity).findOne({[loginProperty]: params[loginProperty]});
     } else {
-      findUser = sails.models.user['findOneBy' + _.upperFirst(loginProperty)](params[loginProperty]);
+      findUser = sails.models.user.findOne({[loginProperty]: params[loginProperty]});
     }
 
     findUser
@@ -134,7 +136,7 @@ module.exports = {
           return manager.persist(newRecord).flush().then(() => newRecord);
         }
 
-        return sails.models.user.create(newUser).then();
+        return sails.models.user.create(newUser).meta({fetch: true}).then();
       })
       .then(user => {
         let findUser;
@@ -201,11 +203,9 @@ module.exports = {
       .then(decodedToken => {
         if (sails.config.auth.wetland) {
           manager = req.getManager();
-
           return manager.getRepository(sails.models.user.Entity).findOne(decodedToken.activate);
         }
-
-        return sails.models.user.findOneId(decodedToken.activate);
+        return sails.models.user.findOne(decodedToken.activate);
       }).then(user => {
       if (!user) {
         throw 'invalid_user';

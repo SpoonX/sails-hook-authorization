@@ -1,15 +1,18 @@
 var bcrypt = require('bcrypt');
+var _      = require('lodash');
+
 
 module.exports = {
   attributes: {
     username: {
       type : 'string',
-      index: true
+      required:true,
+      unique: true
     },
 
     email: {
-      type : 'email',
-      index: true
+      type : 'string',
+      isEmail: true,
     },
 
     password: {
@@ -20,15 +23,12 @@ module.exports = {
     emailConfirmed: {
       type      : 'boolean',
       defaultsTo: false
-    },
-
-    toJSON: function() {
-      var values = this.toObject();
-
-      delete values.password;
-
-      return values;
     }
+  },
+
+  customToJSON: function() {
+  // Return a shallow copy of this record with the password.
+    return _.omit(this, ['password' ])
   },
 
   beforeCreate: encryptPassword,
